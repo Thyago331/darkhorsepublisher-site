@@ -1,0 +1,72 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PROTÓTIPO · Aprovação TikTok</title><link rel="icon" type="image/png" href="/favicon.png"><link rel="stylesheet" href="/style.css">
+<style>
+.proto{position:fixed;left:0;right:0;bottom:0;background:#1b1725;border-top:1px solid var(--purple);padding:10px 16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;z-index:9;font-size:.9rem}
+.proto a{padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted);text-decoration:none}.proto a.on{border-color:var(--purple);color:var(--purple-2)}
+main{padding-bottom:96px}.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.8rem;border:1px solid var(--line);color:var(--muted)}
+label{display:block;margin:14px 0 6px;color:var(--muted);font-size:.9rem}input[type=text],textarea,select{width:100%;background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:inherit}
+textarea{min-height:90px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.row.off{opacity:.45}
+.sw{position:relative;width:46px;height:26px;flex:none}.sw input{opacity:0;width:0;height:0}.sw span{position:absolute;inset:0;background:#2a2635;border-radius:26px;transition:.2s}.sw span::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}.sw input:checked+span{background:var(--purple)}.sw input:checked+span::before{transform:translateX(20px)}
+video{width:100%;max-width:300px;aspect-ratio:9/16;border-radius:12px;background:#000;display:block;margin:0 auto}
+.btn{display:block;width:100%;padding:14px;border-radius:10px;border:0;font:inherit;font-weight:700;cursor:pointer;margin-top:8px}.btn.pri{background:var(--purple);color:#fff}.btn.pri:disabled{opacity:.4;cursor:not-allowed}.btn.sec{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.creator{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.95rem}.creator b{color:var(--silver)}.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#222)}
+.note{font-size:.85rem;color:var(--muted)}.warn{color:#ffb86b}.ok{color:#7ee787}
+.list .item{cursor:pointer}.list .item h3{margin:0;font-size:1rem;color:var(--silver)}.hidden{display:none}.state{font-family:monospace;font-size:.8rem;color:var(--muted);white-space:pre-wrap;background:var(--bg2);padding:10px;border-radius:8px;margin-top:16px}
+</style></head><body><main>
+<header><a class="brand" href="/"><img src="/favicon.png" alt="">Dark Horse Publisher</a><span class="badge">PROTÓTIPO</span></header>
+<div id="app"></div>
+<div class="proto"><span class="muted">variante:</span><a href="?v=a" id="va">A · uma por tela</a><a href="?v=b" id="vb">B · lista</a><a href="?v=c" id="vc">C · tela cheia</a></div>
+<script>
+const v = new URLSearchParams(location.search).get('v') || 'a';
+document.getElementById('v'+v).classList.add('on');
+const creator = { nickname: 'Thyago Ribeiro117', username: 'thy.agod', privacy: ['FOLLOWER_OF_CREATOR','MUTUAL_FOLLOW_FRIENDS','SELF_ONLY'], duet_disabled: true, stitch_disabled: true, comment_disabled: false, max: 3600 };
+const pubs = [
+  { id: 'pub_01', video: '2026-11-03-curiosidade-042', title: 'Você sabia? O cavalo mais rápido do mundo 🐎 #curiosidades #fatos', dur: 6, ai: true },
+  { id: 'pub_02', video: '2026-11-03-curiosidade-043', title: '3 fatos sobre o oceano que ninguém te contou 🌊 #curiosidades', dur: 42, ai: true },
+  { id: 'pub_03', video: '2026-11-03-curiosidade-044', title: 'A história por trás do café ☕ #historia', dur: 58, ai: true },
+];
+const PRIV = { PUBLIC_TO_EVERYONE: 'Todos', FOLLOWER_OF_CREATOR: 'Seguidores', MUTUAL_FOLLOW_FRIENDS: 'Amigos', SELF_ONLY: 'Somente eu' };
+const state = {};
+function form(p, compact=false) {
+  const s = state[p.id] ??= { title: p.title, privacy: '', comment: false, duet: false, stitch: false, disclosure: false, brand: false, branded: false, ai: p.ai, status: 'aguardando_aprovacao' };
+  const sw = (k, label, off=false) => `<div class="row ${off?'off':''}"><span>${label}${off?' <span class="note">(desativado nas configurações do criador)</span>':''}</span><label class="sw"><input type="checkbox" data-k="${k}" ${s[k]?'checked':''} ${off?'disabled':''}><span></span></label></div>`;
+  const labels = [s.brand?'Promotional content':null, s.branded?'Paid partnership':null].filter(Boolean);
+  const brandedSelfOnly = s.branded && s.privacy === 'SELF_ONLY';
+  const can = s.privacy && !(s.disclosure && !s.brand && !s.branded) && !brandedSelfOnly && s.status === 'aguardando_aprovacao';
+  return `<div class="card" data-id="${p.id}">
+    <div class="creator"><div class="avatar"></div><div>Publicar como <b>${creator.nickname}</b> <span class="note">@${creator.username}</span></div></div>
+    ${compact?'':'<p class="note">Vídeo <code>'+p.video+'</code> · '+p.dur+' s'+(p.dur>creator.max?' <span class="warn">acima do máximo da conta</span>':' <span class="ok">dentro do limite de '+creator.max+' s</span>')+'</p>'}
+    <video src="/prototype/teste.mp4" controls playsinline muted loop></video>
+    <label>Legenda <span class="note">(pré-preenchida, edite à vontade)</span></label><textarea data-k="title">${s.title}</textarea>
+    <label>Quem pode ver este vídeo</label><select data-k="privacy"><option value="" ${!s.privacy?'selected':''} disabled>Selecione…</option>${creator.privacy.map(o=>`<option value="${o}" ${s.privacy===o?'selected':''}>${PRIV[o]}</option>`).join('')}</select>
+    ${brandedSelfOnly?'<p class="note warn">Conteúdo de marca não pode ser "Somente eu".</p>':''}
+    <label>Interações</label>${sw('comment','Permitir comentários',creator.comment_disabled)}${sw('duet','Permitir Duet',creator.duet_disabled)}${sw('stitch','Permitir Stitch',creator.stitch_disabled)}
+    <label>Divulgação de conteúdo</label>${sw('disclosure','Este vídeo promove uma marca, produto ou serviço')}
+    ${s.disclosure?`<div style="padding-left:12px">${sw('brand','Sua marca <span class="note">(promove seu próprio negócio)</span>')}${sw('branded','Conteúdo de marca <span class="note">(parceria paga com terceiros)</span>')}${(!s.brand&&!s.branded)?'<p class="note warn">Escolha ao menos uma opção.</p>':`<p class="note">Rótulo no vídeo: <b>${labels.join(' + ')}</b></p>`}</div>`:''}
+    ${sw('ai','Conteúdo gerado por IA <span class="note">(rótulo "Creator labeled as AI-generated")</span>')}
+    <p class="note" style="margin-top:16px">Ao publicar, você concorda com a <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank">Music Usage Confirmation</a> do TikTok${s.branded?' e com a <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank">Branded Content Policy</a>':''}. O processamento pode levar alguns minutos.</p>
+    <button class="btn pri" data-act="approve" ${can?'':'disabled'}>${s.status==='aguardando_aprovacao'?'Publicar no TikTok':s.status==='na_fila'?'✓ Enviado para a fila':'✗ Rejeitada'}</button>
+    ${s.status==='aguardando_aprovacao'?'<button class="btn sec" data-act="reject">Rejeitar esta publicação</button>':''}
+    <div class="state">estado: ${JSON.stringify(s)}</div>
+  </div>`;
+}
+function render() {
+  const app = document.getElementById('app');
+  if (v === 'a') {
+    const p = pubs[0];
+    app.innerHTML = `<h1>Revisar publicação</h1><p class="muted">1 de ${pubs.length} aguardando aprovação neste canal.</p>${form(p)}<p class="note">Próxima: ${pubs[1].video}</p>`;
+  } else if (v === 'b') {
+    app.innerHTML = `<h1>Aguardando aprovação</h1><p class="muted">Canal <b>@${creator.username}</b> · ${pubs.length} publicações</p><div class="list">${pubs.map((p,i)=>`<div class="card item" data-open="${p.id}"><h3>${p.video}</h3><p class="note">${p.dur} s · ${state[p.id]?.status??'aguardando_aprovacao'}</p><div class="hidden" id="f_${p.id}">${form(p,true)}</div></div>`).join('')}</div>`;
+    (window.open_ ||= new Set()).forEach(id => document.getElementById('f_'+id)?.classList.remove('hidden'));
+  } else {
+    const p = pubs[0];
+    app.innerHTML = `<style>main{max-width:none;padding:0 0 96px}header{display:none}video{max-width:none;border-radius:0;aspect-ratio:auto;height:60vh}.card{border:0;border-radius:0;margin:0}</style>${form(p)}`;
+  }
+}
+document.addEventListener('input', e => { const k = e.target.dataset.k; if (!k) return; const id = e.target.closest('[data-id]').dataset.id; state[id][k] = e.target.type==='checkbox'?e.target.checked:e.target.value; if (k==='disclosure'&&!state[id].disclosure){state[id].brand=state[id].branded=false} render(); });
+document.addEventListener('click', e => {
+  const o = e.target.closest('[data-open]'); if (o && !e.target.closest('[data-id]')) { window.open_ ||= new Set(); const id=o.dataset.open; window.open_.has(id)?window.open_.delete(id):window.open_.add(id); render(); return; }
+  const a = e.target.dataset.act; if (!a) return; const id = e.target.closest('[data-id]').dataset.id; state[id].status = a==='approve'?'na_fila':'falha_permanente'; render();
+});
+render();
+</script></main></body></html>
